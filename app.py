@@ -1,14 +1,3 @@
-"""
-app.py — Flask web server.
-
-This file only handles HTTP routing (serving the frontend, and exposing
-/api/segment and /api/elbow). All of the actual image-segmentation work
-happens in main.py.
-
-A small in-memory cache keeps live slider updates snappy: changing only the
-grid size re-uses the already-computed K-Means result, and the (unchanged)
-original image is only sent back when the client asks for it.
-"""
 import os
 import hashlib
 from collections import OrderedDict
