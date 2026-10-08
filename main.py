@@ -60,6 +60,13 @@ def _kmeans_plusplus_init(pixels: np.ndarray, k: int, rng: np.random.Generator) 
     return centers
 
 
+def _assign(pixels: np.ndarray, px_sq: np.ndarray, centers: np.ndarray) -> np.ndarray:
+    """Nearest-center index for every pixel. Uses ||x||^2 - 2x.c + ||c||^2 so no
+    (n, k, 3) intermediate array is built - much faster and lighter on memory."""
+    d = px_sq[:, None] - 2.0 * (pixels @ centers.T) + np.sum(centers ** 2, axis=1)[None, :]
+    return np.argmin(d, axis=1)
+
+
 def kmeans(pixels: np.ndarray, k: int, iterations: int = 25, seed: int = 42):
     """Run K-Means on an (n, 3) array of normalised (0-1) RGB pixels.
 
@@ -70,25 +77,25 @@ def kmeans(pixels: np.ndarray, k: int, iterations: int = 25, seed: int = 42):
     """
     rng = np.random.default_rng(seed)
     centers = _kmeans_plusplus_init(pixels, k, rng)
+    px_sq = np.sum(pixels ** 2, axis=1)
     labels = np.zeros(pixels.shape[0], dtype=np.int64)
 
     for _ in range(iterations):
-        distances = np.linalg.norm(pixels[:, None, :] - centers[None, :, :], axis=2)
-        labels = np.argmin(distances, axis=1)
+        labels = _assign(pixels, px_sq, centers)
 
+        counts = np.bincount(labels, minlength=k).astype(np.float64)
         new_centers = centers.copy()
-        for c in range(k):
-            mask = labels == c
-            if np.any(mask):
-                new_centers[c] = pixels[mask].mean(axis=0)
+        nonempty = counts > 0
+        for ch in range(3):
+            sums = np.bincount(labels, weights=pixels[:, ch], minlength=k)
+            new_centers[nonempty, ch] = sums[nonempty] / counts[nonempty]
 
         if np.allclose(new_centers, centers, atol=1e-6):
             centers = new_centers
             break
         centers = new_centers
 
-    distances = np.linalg.norm(pixels[:, None, :] - centers[None, :, :], axis=2)
-    labels = np.argmin(distances, axis=1)
+    labels = _assign(pixels, px_sq, centers)
     inertia = float(np.sum((pixels - centers[labels]) ** 2))
 
     return labels, centers, inertia

@@ -83,6 +83,8 @@ p.sub{color:var(--muted);max-width:58ch;margin:0 0 32px;font-size:14.5px;}
 #drop .icon{font-size:26px;display:block;margin-bottom:8px;}
 #drop .small{color:var(--muted);font-size:13px;margin-top:4px;}
 input[type=file]{display:none;}
+#drop.compact{padding:12px 16px;}
+#drop.compact .icon,#drop.compact .small{display:none;}
 
 .row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:6px;}
 .field{display:flex;flex-direction:column;gap:5px;min-width:130px;flex:1;}
@@ -122,6 +124,37 @@ table.error-table tr.best td:first-child{font-weight:600;}
 .suggestion p{margin:6px 0 0;font-size:13.5px;color:var(--muted);}
 .empty-note{background:var(--well);border:1px dashed var(--line);border-radius:8px;padding:20px;text-align:center;color:var(--muted);font-size:13.5px;}
 .hidden{display:none !important;}
+
+/* ---------- custom sliders ---------- */
+.slider-list{display:flex;flex-direction:column;gap:24px;margin:8px 0 24px;}
+.sl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;}
+.sl-label{font-size:13px;color:var(--muted);letter-spacing:.01em;}
+.sl-value{font-family:"IBM Plex Mono",monospace;font-size:14px;font-weight:600;color:var(--ink);}
+.sl{--sl-track:#0c1013; --sl-fill:#e6eaed; --sl-thumb:#ffffff;
+  position:relative;height:30px;border-radius:15px;background:var(--sl-track);
+  box-shadow:0 0 0 1px var(--line);cursor:pointer;touch-action:pan-y;
+  user-select:none;-webkit-user-select:none;outline:none;}
+.sl-fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--sl-fill);
+  border-radius:15px 0 0 15px;pointer-events:none;}
+.sl-thumb{position:absolute;top:-6px;bottom:-6px;left:0;width:3px;margin-left:-1.5px;
+  background:var(--sl-thumb);border-radius:2px;pointer-events:none;
+  box-shadow:0 0 0 1.5px var(--sl-track);transition:transform .12s ease;}
+.sl.dragging .sl-thumb{transform:scaleY(1.08);}
+.sl:focus-visible{box-shadow:0 0 0 1px var(--line),0 0 0 3px var(--accent);}
+.seg-layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:18px;align-items:start;}
+.seg-layout > .card{margin-bottom:0;}
+.seg-controls{position:sticky;top:18px;}
+.seg-layout .imgpanes{flex-wrap:nowrap;}
+.seg-layout .ipane{min-width:0;}
+.seg-layout .ipane img{max-width:100%;height:auto;}
+.live-badge{float:right;font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);}
+@media (max-width:1000px){
+  .seg-layout{grid-template-columns:1fr;}
+  .seg-controls{position:static;}
+}
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin-right:7px;vertical-align:middle;}
+.busy-status .live-dot{background:var(--accent);animation:pulse .8s ease-in-out infinite alternate;}
+@keyframes pulse{from{opacity:.3}to{opacity:1}}
 
 .contrib-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:6px;}
 .contrib-slot{border:1.5px dashed var(--line);border-radius:9px;padding:20px 14px;text-align:center;color:var(--muted);}
@@ -208,31 +241,41 @@ table.error-table tr.best td:first-child{font-weight:600;}
       </div>
     </div>
 
-    <div class="card hidden" id="settingsStage">
+    <div class="seg-layout hidden" id="segLayout">
+    <div class="card seg-controls" id="settingsStage">
       <h2>Choose your clusters</h2>
-      <p class="hint">These settings are sent to /api/segment — larger images and higher k take longer to process.</p>
-      <div class="row">
-        <div class="field"><label for="kInput">Clusters (k)</label><input id="kInput" type="number" min="2" max="16" value="4"></div>
-        <div class="field"><label for="sizeInput">Max image size (px)</label><input id="sizeInput" type="number" min="40" max="500" value="220"></div>
-        <div class="field"><label for="gridInput">Grid spacing (px, 0 = off)</label><input id="gridInput" type="number" min="0" max="200" value="30"></div>
+      <p class="hint">Drag a slider — the segmented result on the right updates live as the value changes.</p>
+      <div class="slider-list">
+        <div class="sl-group">
+          <div class="sl-head"><label class="sl-label" id="kLabel">Clusters (k)</label><span class="sl-value" id="kValue"></span></div>
+          <div class="sl" id="kSlider" role="slider" tabindex="0" aria-labelledby="kLabel"><div class="sl-fill"></div><div class="sl-thumb"></div></div>
+        </div>
+        <div class="sl-group">
+          <div class="sl-head"><label class="sl-label" id="gridLabel">Grid size (px, 0 = off)</label><span class="sl-value" id="gridValue"></span></div>
+          <div class="sl" id="gridSlider" role="slider" tabindex="0" aria-labelledby="gridLabel"><div class="sl-fill"></div><div class="sl-thumb"></div></div>
+        </div>
+        <div class="sl-group">
+          <div class="sl-head"><label class="sl-label" id="sizeLabel">Max image size (px)</label><span class="sl-value" id="sizeValue"></span></div>
+          <div class="sl" id="sizeSlider" role="slider" tabindex="0" aria-labelledby="sizeLabel"><div class="sl-fill"></div><div class="sl-thumb"></div></div>
+        </div>
       </div>
       <div class="actions">
-        <button id="runBtn">Run segmentation</button>
         <a class="hidden" id="downloadBtn" download="segmented.png"><button class="ghost" type="button">Download segmented PNG</button></a>
       </div>
       <div class="status" id="statusMsg"></div>
     </div>
 
-    <div class="card hidden" id="resultStage">
-      <h2>Segmented result</h2>
+    <div class="card" id="resultStage">
+      <h2>Segmented result <span class="live-badge" id="liveBadge"></span></h2>
       <p class="hint">Each pixel is replaced by the colour of the cluster it was assigned to.</p>
       <div class="imgpanes">
         <div class="ipane"><h3>Original</h3><img id="origImg" alt="Original image"></div>
-        <div class="ipane"><h3 id="segLabel">Segmented</h3><img id="segImg" alt="Segmented image"></div>
+        <div class="ipane"><h3 id="segLabel">Segmented</h3><img id="segImg" class="seg-live" alt="Segmented image"></div>
       </div>
       <table class="legend" id="legendTable"></table>
       <div class="stat-line" id="errorLine"></div>
     </div>
+  </div>
   </section>
 
   <!-- 03 GRAPHS -->
@@ -299,6 +342,10 @@ function setView(view){
   document.getElementById('view-'+view).classList.add('active');
   document.querySelectorAll('.navitem').forEach(b => b.classList.toggle('active', b.dataset.view===view));
   window.scrollTo({top:0, behavior:'smooth'});
+  // the chart can't be measured while its tab is hidden, so redraw it once visible
+  if (view === 'graphs' && lastElbowData){
+    requestAnimationFrame(() => drawElbow(lastElbowData.kValues, lastElbowData.meanErrors, lastK, lastElbowData.suggestedK));
+  }
 }
 document.querySelectorAll('.navitem').forEach(b => b.addEventListener('click', () => setView(b.dataset.view)));
 
@@ -309,6 +356,7 @@ document.getElementById('menuToggle').addEventListener('click', () => {
 const dropZone = document.getElementById('drop');
 const fileInput = document.getElementById('fileInput');
 const settingsStage = document.getElementById('settingsStage');
+const segLayout = document.getElementById('segLayout');
 const resultStage = document.getElementById('resultStage');
 const statusMsg = document.getElementById('statusMsg');
 const elbowStatus = document.getElementById('elbowStatus');
@@ -323,6 +371,71 @@ const errorAnalysisSummary = document.getElementById('errorAnalysisSummary');
 let currentFile = null;
 let lastK = 4;
 let lastElbowData = null;
+
+// ---------- slider state (single source of truth) ----------
+const params = { k: 4, grid: 30, maxSize: 220 };
+
+// Custom slider: pointer drag (mouse/touch/pen) + keyboard, fully state-driven.
+function makeSlider(rootId, valueId, {min, max, step, value, format, onChange}){
+  const root = document.getElementById(rootId);
+  const fill = root.querySelector('.sl-fill');
+  const thumb = root.querySelector('.sl-thumb');
+  const valueEl = document.getElementById(valueId);
+  let val = value, dragging = false;
+
+  root.setAttribute('aria-valuemin', min);
+  root.setAttribute('aria-valuemax', max);
+
+  function paint(){
+    const pct = ((val - min) / (max - min)) * 100;
+    fill.style.width = pct + '%';
+    thumb.style.left = pct + '%';
+    root.setAttribute('aria-valuenow', val);
+    root.setAttribute('aria-valuetext', format(val));
+    valueEl.textContent = format(val);
+  }
+  function commit(v){
+    v = Math.min(max, Math.max(min, v));
+    if (v === val) return;
+    val = v; paint(); onChange(val);
+  }
+  function fromPointer(clientX){
+    const r = root.getBoundingClientRect();
+    const t = Math.min(1, Math.max(0, (clientX - r.left) / r.width));
+    commit(min + Math.round((t * (max - min)) / step) * step);
+  }
+
+  root.addEventListener('pointerdown', e => {
+    dragging = true; root.classList.add('dragging');
+    root.setPointerCapture(e.pointerId);
+    root.focus({preventScroll:true});
+    fromPointer(e.clientX);
+  });
+  root.addEventListener('pointermove', e => { if (dragging) fromPointer(e.clientX); });
+  const stop = e => {
+    dragging = false; root.classList.remove('dragging');
+    if (root.hasPointerCapture(e.pointerId)) root.releasePointerCapture(e.pointerId);
+  };
+  root.addEventListener('pointerup', stop);
+  root.addEventListener('pointercancel', stop);
+
+  root.addEventListener('keydown', e => {
+    const big = Math.max(step, Math.round((max - min) / 10 / step) * step);
+    const map = {ArrowRight:val+step, ArrowUp:val+step, ArrowLeft:val-step, ArrowDown:val-step,
+                 PageUp:val+big, PageDown:val-big, Home:min, End:max};
+    if (e.key in map){ e.preventDefault(); commit(map[e.key]); }
+  });
+
+  paint();
+  return { get value(){ return val; } };
+}
+
+makeSlider('kSlider','kValue',{min:2, max:16, step:1, value:params.k, format:v => String(v),
+  onChange:v => { params.k = v; scheduleSegment(); }});
+makeSlider('gridSlider','gridValue',{min:0, max:200, step:1, value:params.grid, format:v => v === 0 ? 'Off' : v + ' px',
+  onChange:v => { params.grid = v; scheduleSegment(); }});
+makeSlider('sizeSlider','sizeValue',{min:40, max:500, step:10, value:params.maxSize, format:v => v + ' px',
+  onChange:v => { params.maxSize = v; scheduleSegment(); }});
 
 dropZone.addEventListener('click', () => fileInput.click());
 ['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('drag'); }));
@@ -344,34 +457,69 @@ function resetErrorAnalysis(){
 function selectFile(file){
   currentFile = file;
   resetErrorAnalysis();
-  settingsStage.classList.remove('hidden');
-  resultStage.classList.add('hidden');
+  segLayout.classList.remove('hidden');
+  dropZone.classList.add('compact');
+  dropZone.querySelector('div').textContent = '✓ ' + file.name + ' — drop or click to replace';
+  haveOriginalFor = null;
+  scheduleSegment(0);           // show a live result straight away
 }
 
-document.getElementById('runBtn').addEventListener('click', async () => {
-  if (!currentFile) return;
-  const runBtn = document.getElementById('runBtn');
-  runBtn.disabled = true;
-  statusMsg.classList.remove('error');
-  statusMsg.textContent = 'Uploading and running K-Means on the backend…';
+// ---------- live segmentation ----------
+// Requests run one at a time. While one is in flight, further slider moves just
+// record the newest values; as soon as it finishes the latest values are sent.
+// Result: continuous updates during a drag, never a pile-up of stale requests.
+let segTimer = null, inflight = false, pending = false, haveOriginalFor = null;
+const liveBadge = document.getElementById('liveBadge');
 
-  const k = Math.max(2, parseInt(document.getElementById('kInput').value) || 4);
-  const maxSize = parseInt(document.getElementById('sizeInput').value) || 220;
-  const gridSize = Math.max(0, parseInt(document.getElementById('gridInput').value) || 0);
+function scheduleSegment(delay = 0){
+  clearTimeout(segTimer);
+  segTimer = setTimeout(kick, delay);
+}
+
+async function kick(){
+  if (!currentFile) return;
+  if (inflight){ pending = true; return; }
+  inflight = true;
+  try {
+    do { pending = false; await doSegment(); } while (pending);
+  } finally { inflight = false; }
+}
+
+// Decode off-screen first so the visible image swaps instantly (no flicker).
+function preload(src){
+  const img = new Image();
+  img.src = src;
+  return (img.decode ? img.decode() : Promise.resolve()).catch(() => {});
+}
+
+async function doSegment(){
+  const { k, grid, maxSize } = params;
+  const origKey = maxSize + '|' + currentFile.name + currentFile.size;
+  const needOriginal = haveOriginalFor !== origKey;
+
+  statusMsg.classList.remove('error');
+  liveBadge.textContent = '● updating';
 
   const formData = new FormData();
   formData.append('image', currentFile);
   formData.append('k', k);
   formData.append('max_size', maxSize);
-  formData.append('grid_size', gridSize);
+  formData.append('grid_size', grid);
+  formData.append('need_original', needOriginal ? '1' : '0');
 
   try {
     const res = await fetch('/api/segment', { method: 'POST', body: formData });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Segmentation failed.');
 
-    document.getElementById('origImg').src = 'data:image/png;base64,' + data.original_png;
-    document.getElementById('segImg').src = 'data:image/png;base64,' + data.segmented_png;
+    const segSrc = 'data:image/png;base64,' + data.segmented_png;
+    await preload(segSrc);
+
+    if (data.original_png){
+      document.getElementById('origImg').src = 'data:image/png;base64,' + data.original_png;
+      haveOriginalFor = origKey;
+    }
+    document.getElementById('segImg').src = segSrc;
     document.getElementById('segLabel').textContent = `Segmented, k=${k}`;
 
     let rows = '<tr><th>Cluster</th><th>Colour</th><th>R</th><th>G</th><th>B</th><th>Luminance</th></tr>';
@@ -384,21 +532,24 @@ document.getElementById('runBtn').addEventListener('click', async () => {
     document.getElementById('errorLine').innerHTML =
       `Quantisation error — inertia: <b>${st.inertia}</b> · mean per pixel: <b>${st.mean_error}</b> · RMSE (0–255 scale): <b>${st.rmse_255}</b>`;
 
-    downloadBtn.href = 'data:image/png;base64,' + data.segmented_png;
+    downloadBtn.href = segSrc;
     downloadBtn.classList.remove('hidden');
-    resultStage.classList.remove('hidden');
-    resetErrorAnalysis();
     elbowEmpty.classList.add('hidden');
     elbowControls.classList.remove('hidden');
-    statusMsg.textContent = 'Done. See the Graphs tab for the error curve and Error Analysis for every calculated error value.';
     lastK = k;
+
+    if (lastElbowData){
+      if (lastElbowData.maxSize !== maxSize) resetErrorAnalysis();
+      else renderErrorAnalysis(lastElbowData.kValues, lastElbowData.meanErrors, lastK, lastElbowData.suggestedK);
+    }
+    statusMsg.textContent = 'Live — move a slider to update the result.';
+    liveBadge.textContent = '';
   } catch (err) {
     statusMsg.classList.add('error');
     statusMsg.textContent = err.message;
-  } finally {
-    runBtn.disabled = false;
+    liveBadge.textContent = '';
   }
-});
+}
 
 document.getElementById('elbowBtn').addEventListener('click', async () => {
   if (!currentFile) return;
@@ -409,7 +560,7 @@ document.getElementById('elbowBtn').addEventListener('click', async () => {
 
   const kMin = Math.max(2, parseInt(document.getElementById('kMin').value) || 2);
   const kMax = Math.max(kMin, parseInt(document.getElementById('kMax').value) || 9);
-  const maxSize = parseInt(document.getElementById('sizeInput').value) || 220;
+  const maxSize = params.maxSize;
 
   const formData = new FormData();
   formData.append('image', currentFile);
@@ -422,7 +573,7 @@ document.getElementById('elbowBtn').addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Elbow computation failed.');
     const suggestedK = findElbowK(data.k_values, data.mean_errors);
-    lastElbowData = { kValues: data.k_values, meanErrors: data.mean_errors, suggestedK };
+    lastElbowData = { kValues: data.k_values, meanErrors: data.mean_errors, suggestedK, maxSize };
 
     const chartWrap = document.getElementById('chartWrap');
     chartWrap.classList.remove('hidden');
